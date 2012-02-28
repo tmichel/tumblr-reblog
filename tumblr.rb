@@ -48,9 +48,16 @@ if File.exists?('tumblr.conf')
 end
   
 
+# checking host format
+
+host = options[:host]
+if !host.end_with?(".com")
+  host = "#{host}.tumblr.com"
+end
+
 # getting the reblog key for the post
 
-res = HTTP.get_response("#{options[:host]}.tumblr.com", "/api/read?id=#{options[:id]}")
+res = HTTP.get_response(host, "/api/read?id=#{options[:id]}")
 if res.is_a?(Net::HTTPFound) || res.is_a?(HTTPMovedPermanently)
   newloc = res.fetch("location")
   res = HTTP.get_response(host, newloc)
@@ -63,8 +70,6 @@ end
 doc = Document.new res.body
 post = doc.root.elements["posts/post"]
 reblog_key = post.attributes["reblog-key"]
-
-puts "successfully got reblog key"
 
 # reblogging the post
 
@@ -79,7 +84,10 @@ email = options[:email]
 data = {"email"=> email, "password" => options[:password], "post-id"=> options[:id], "reblog-key"=>reblog_key}
 path = URI("http://tumblr.com/api/reblog")
 res = HTTP.post_form(path, data)
-puts "#{res.code}: #{res.message}"
+if res.is_a?(Net::HTTPForbidden)
+  puts "Your password or email is invalid."
+end
+
 
 
 
